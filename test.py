@@ -12,6 +12,7 @@ class Window(QWidget):
 
     def UI(self):
         # 이미지를 삽일 할 때에도 QLabel을 이용합니다.
+        self.image = QLabel(self)
         # QLabel의 속성에 보면 setPixmap이 있는데 이 값을 통하여 이미지를 지정합니다.
         self.image.setPixmap(QPixmap("30837.jpg"))
         self.image.move(150, 50)
