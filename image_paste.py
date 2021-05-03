@@ -9,7 +9,11 @@ face_image_np = face_recognition.load_image_file(image_path)
 face_image_np = face_recognition.load_image_file(face_image_path)
 face_image = Image.fromarray(face_image_np)
 face_locations = face_recognition.face_locations(face_image_np)
-draw = ImageDraw.Draw(face_image)
+face_landmarks = face_recognition.face_landmarks(face_image_np, face_locations)
+#draw = ImageDraw.Draw(face_image)
+
+face_landmark_image = Image.fromarray(face_image_np)
+draw = ImageDraw.Draw(face_landmark_image)
 
 for face_location in face_locations:
     top = face_location[0]
