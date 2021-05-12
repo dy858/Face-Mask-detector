@@ -1,8 +1,9 @@
 import face_recognition
 from PIL import Image, ImageDraw
+import math
 
 
-face_image_path = 'data/without_mask/1.jpg'
+face_image_path = 'data/without_mask/2.jpg'
 mask_image_path = 'data/mask.png'
 
 face_image_np = face_recognition.load_image_file(face_image_path)
@@ -36,10 +37,19 @@ for face_landmark in face_landmarks:
 #x = int(face_landmarks[0][0][15][0] - face_landmarks[0][0][2][0])
 #y = int(face_landmarks[0][3][2][1] - face_landmarks[0][0][8][1])
 
-print(abs(x), abs(b - a))
+
+
+#print(abs(x), abs(b - a))
 y = abs(b - a)
 mask_image = Image.open(mask_image_path)
-mask_image = mask_image.resize((int(1.2 * abs(x)), int(1.2 * abs(y))))
+
+angle = 30
+mask_image_rotate = mask_image.rotate(angle, expand = True)  #라디안이 아닌 도 사용, expand를 사용해 이미지가 잘리지 않고 출력
+mask_image_rotate.show()
+
+
+
+mask_image = mask_image.resize((int(1.4 * abs(x)), int(1.2 * abs(y))))
 face_image.paste(mask_image, (int(x_1 - 0.2*x), int(b)), mask_image)
 
 #chin에서 3번째의 좌표를 찍으려면
