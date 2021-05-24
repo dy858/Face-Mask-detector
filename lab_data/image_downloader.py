@@ -28,10 +28,10 @@ for i in range(len(contents)):
     image_data = response.read()
 
     #데이터 폴더가 있는지 확인힌다,없으면 만든다
-    if not os.path.exists('data'):
-        os.mkdir('data')#폴더가 만들어진다
-    if not os.path.exists('data/without_mask'):
-        os.mkdir('data/without_mask')
+    if not os.path.exists('../data'):
+        os.mkdir('../data')#폴더가 만들어진다
+    if not os.path.exists('../data/without_mask'):
+        os.mkdir('../data/without_mask')
 
     #이미지 파일로 쓰여진다
     image_file = open('data/without_mask/'+ content['name'],'wb')
@@ -39,7 +39,7 @@ for i in range(len(contents)):
     print('다운로드 완료('+str(i+1) + '/' + str(len(contents)) + '): ' + content['name'])
     #다운로드 완료(10/500): 10.jpg
 
-    break #지우면 전체 파일이 다운받아진다
+     #지우면 전체 파일이 다운받아진다(break)
 
 
 #깃허브에서 제공하는 api를 통해 url을 뽑아냄
