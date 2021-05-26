@@ -88,6 +88,29 @@ def download_image(kind):
 def distance_point_to_point(point1, point2):
     return np.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
 
+#점과 직선 사이의 거리 함수
+def distance_point_to_line(point, line_point1, line_point2):
+    if line_point1[0] == line_point2[0]:
+        return np.abs(point[0] - line_point1[0])
+    a = - (line_point1[1] - line_point2[1]) / (line_point1[0] - line_point2[0])
+    b = -1
+    c = -a * line_point1[0] + b * line_point1[1]
+    return np.abs(a * point[0] + b * point[1] + c) / np.sqrt(a ** 2 + b ** 2)
+
+#파이썬으로 다른 점을 중심으로 점 회전
+def rotate_point(origin, point, radian):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + np.cos(radian) * (px - ox) - np.sin(radian) * (py - oy)
+    qy = oy + np.sin(radian) * (px - ox) + np.cos(radian) * (py - oy)
+    return qx, qy
+
 #마스크 합성 기능
 def mask_processing(face_image_file_name):
     #이미지 경로 생성
@@ -114,40 +137,88 @@ def mask_processing(face_image_file_name):
         #마스크 너비 보정값(1.2배)
         mask_width_ratio = 1.2
 
-        #마스크 높이 계산 ( 노즈 브릿지 2번쨰 점 , 친 9번째 점 사이의 길이)
-        maks_height = int(distance_point_to_point(face_landmark['nose_bridge'][1], face_landmark['chin'][8]))
+        #마스크 높이 계산 ( 노즈 브릿지 2번쨰 점 , 턱 9번째 점 사이의 길이)
+        mask_height = int(distance_point_to_point(face_landmark['nose_bridge'][1], face_landmark['chin'][8]))
 
         #마스크 좌/우 분할
         mask_left_image = mask_image.crop((0, 0, mask_image.width // 2, mask_image.height)) #복사본으로 원본에는 손상이 없다
         mask_right_image = mask_image.crop((mask_image.width // 2, 0, mask_image.width, mask_image.height))
-        #왼쪽 얼굴 너비 계산
+
+        #왼쪽 마스크 너비 계산
+        mask_left_width = int(distance_point_to_line(face_landmark['chin'][0], face_landmark['nose_brdige'][0], face_landmark['chin'][8]) * mask_width_ratio)
+
 
         #왼쪽 마스크 크기 조절
+        mask_left_image = mask_left_image.resize((mask_left_image, mask_height))
 
         #오른쪽 얼굴 너비 계산
+        mask_right_width = maks_left_width = int(distance_point_to_line(face_landmark['chin'][16], face_landmark['nose_brdige'][0], face_landmark['chin'][8]) * mask_width_ratio)
 
         #오른쪽 마스크 크기 조절
+        mask_right_image = mask_right_image.resize((mask_right_image, mask_height))
 
-        #좌/우 마스크 크기 연결
+        #좌/우 마스크 크기 연결(이미지를 새로 만들어 붙여넣는 식으로)
+        mask_image = Image.new('RGBA', (mask_left_image + mask_right_image), mask_height)
+        mask_image.paste(mask_left_image, (0, 0), mask_left_image)
+        mask_image.paste(mask_right_image, (mask_left_image, 0), mask_right_image)
 
         #얼굴 회전 각도 계산
+        dx = face_landmark['chin'][8][0] - face_landmark['nose_brdige'][0][0]
+        dy = face_landmark['chin'][8][1] - face_landmark['nose_brdige'][0][1]
+
+        face_radian = np.arctan2(dy, dx)
+        face_degree = np.rad2deg(face_radian)
 
         #마스크 회전
+        mask_degree = (90 - face_degree + 360) % 360 #음수가 나올때를 대비함
+        mask_image = mask_image.rotate(mask_degree, expand = True)
+
+        #마스크 위치 계산
+        mask_radian = np.deg2rad(-mask_degree)
+        #(회전의 중앙점)
+        center_x = (face_landmark['nose_brdige'][1][0] - face_landmark['chin'][8][0]) // 2
+        center_y = (face_landmark['nose_brdige'][1][1] - face_landmark['chin'][8][1]) // 2
+
+        #(회전이 된 이미지 기준 좌표)
+        p1 = rotate_point((center_x - center_y), (center_x - mask_left_width, center_y - mask_height // 2), mask_radian)
+        p2 = rotate_point((center_x - center_y), (center_x - mask_left_width, center_y + mask_height // 2), mask_radian)
+        p3 = rotate_point((center_x - center_y), (center_x + mask_left_width, center_y - mask_height // 2), mask_radian)
+        p4 = rotate_point((center_x - center_y), (center_x + mask_left_width, center_y + mask_height // 2), mask_radian)
+
+        box_x = int(min(p1[0], p2[0], p3[0], p4[0]))
+        box_y = int(min(p1[1], p2[1], p3[1], p4[1]))
 
 
+        #마스크 합성(붙여넣기)
+        face_image.paste(mask_image, (box_x, box_y), mask_image)
+
+        face_count += 1
 
 
     #결과 이미지 반환
     return face_image, face_count
 
 
-
-
-
-
-
-
 #데이터 생성 함수   (총 3가지 함수 생성)
+def generate_data():
+    face_image_base_path = 'data/without_mask'
+    save_path = 'data/without_mask/'
+
+    face_image_file_names = os.listdir(face_image_base_path)
+
+    for i in range(len(face_image_file_names)):
+        face_image_file_name = face_image_file_names[i]
+
+        face_image, face_count = mask_processing(face_image_file_name)
+
+        if face_count == 0:
+            os.remove(face_image_base_path + face_image_file_name)
+            print('얼굴 인식 실패(' str(i + 1) + '/' + str(len(face_image_file_names)) + '): ' + face_image_file_name)
+
+        else:
+            if not os.path.exists(save.path):
+                os.mkdir(save.path)
+
 
 
 #외부에서 불러올 때는 실행되지 않는다
