@@ -5,7 +5,7 @@ train_dataset = tf.keras.preprocessing.image_dataset_from_directory(
     '../data/',
     validation_split=0.2,
     subset='training',
-    seed=123,
+    seed=777,
     image_size=(224, 224),
     batch_size=16
 )
@@ -14,7 +14,7 @@ valid_dataset = tf.keras.preprocessing.image_dataset_from_directory(
     '../data/',
     validation_split=0.2,
     subset='validation',
-    seed=123,
+    seed=777,
     image_size=(224, 224),
     batch_size=16
 )
@@ -42,7 +42,7 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dense(1)
 ])
 
-learning_rate = 0.0001
+learning_rate = 0.001
 model.compile(
     loss=tf.keras.losses.BinaryCrossentropy(from_logits=True), #분류문제에 적합한 학습이다
     optimizer=tf.keras.optimizers.RMSprop(lr=learning_rate),
@@ -52,5 +52,5 @@ model.compile(
 
 print(model.summary())
 
-history = model.fit(rc_train_dataset, epochs=3, validation_data=rc_valid_dataset)
+history = model.fit(rc_train_dataset, epochs=4, validation_data=rc_valid_dataset)
 print(history)
